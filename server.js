@@ -1,34 +1,32 @@
-// Load environment variables first
 require('dotenv').config();
-
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
 const app = express();
 
-// Middleware to parse JSON bodies
+// Constants setup
+const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const API_BASE_URL = isProduction 
+  ? 'https://cse-341-web-services-dr.onrender.com' 
+  : `http://localhost:${PORT}`;
+
+// Middleware
 app.use(express.json());
 
-// Debug middleware to log all incoming requests
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
-
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/contactsDB')
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Import routes
-const mainRouter = require('./routes');
+// Routes
+const contactsRouter = require('./routes/contacts');
+app.use('/contacts', contactsRouter);
 
-// Mount routes
-app.use('/', mainRouter);
-
-// Swagger documentation setup
+// Swagger Documentation
 let swaggerEnabled = true;
 try {
-  const swaggerSetup = require('./swagger');
+  const swaggerSetup = require('./config/swagger');
   swaggerSetup(app);
   console.log('Swagger documentation enabled');
 } catch (err) {
@@ -37,30 +35,20 @@ try {
 }
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    swagger: swaggerEnabled
+app.get('/', (req, res) => {
+  res.json({
+    status: 'API is running',
+    docs: `${API_BASE_URL}/api-docs`,
+    environment: isProduction ? 'production' : 'development'
   });
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message
-  });
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// At the top of your server.js with other constants
-const isProduction = process.env.NODE_ENV === 'production';
-const API_BASE_URL = isProduction 
-  ? 'https://cse-341-web-services-dr.onrender.com' 
-  : `http://localhost:${PORT}`;
-
-// ... (in your app.listen callback)
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`REST API: ${API_BASE_URL}/contacts`);
@@ -70,7 +58,5 @@ app.listen(PORT, () => {
     console.log(`- Local: http://localhost:${PORT}/api-docs`);
     console.log(`- Production: https://cse-341-web-services-dr.onrender.com/api-docs`);
     console.log(`- JSON Spec: ${API_BASE_URL}/api-docs.json`);
-  } else {
-    console.log('Swagger documentation is disabled');
   }
 });
