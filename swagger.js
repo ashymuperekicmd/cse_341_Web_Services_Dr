@@ -1,5 +1,11 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const path = require('path');
+
+// Get the current environment
+const isProduction = process.env.NODE_ENV === 'production';
+const localServerUrl = `http://localhost:${process.env.PORT || 3000}`;
+const productionServerUrl = process.env.RENDER_EXTERNAL_URL || 'https://cse-341-web-services-dr.onrender.com';
 
 const options = {
   definition: {
@@ -7,17 +13,31 @@ const options = {
     info: {
       title: 'Contacts API',
       version: '1.0.0',
-      description: 'API for managing contacts',
+      description: 'API for managing contacts with full CRUD operations',
+      contact: {
+        name: 'API Support',
+        email: 'support@example.com'
+      },
+      license: {
+        name: 'MIT',
+        url: 'https://opensource.org/licenses/MIT'
+      }
     },
     servers: [
       {
-        url: 'https://your-render-app-url.onrender.com', // Update with your Render URL
-        description: 'Production server',
+        url: productionServerUrl,
+        description: 'Production server'
       },
       {
-        url: 'http://localhost:3000',
-        description: 'Development server',
-      },
+        url: localServerUrl,
+        description: 'Development server'
+      }
+    ],
+    tags: [
+      {
+        name: 'contacts',
+        description: 'Contact operations'
+      }
     ],
     components: {
       schemas: {
@@ -27,50 +47,102 @@ const options = {
           properties: {
             _id: {
               type: 'string',
-              description: 'Auto-generated contact ID',
+              example: '507f1f77bcf86cd799439011',
+              description: 'Auto-generated MongoDB ID'
             },
             firstName: {
               type: 'string',
-              description: 'First name of the contact',
+              example: 'John',
+              minLength: 2,
+              maxLength: 50
             },
             lastName: {
               type: 'string',
-              description: 'Last name of the contact',
+              example: 'Doe',
+              minLength: 2,
+              maxLength: 50
             },
             email: {
               type: 'string',
               format: 'email',
-              description: 'Email address of the contact',
+              example: 'john.doe@example.com',
+              pattern: '^\\S+@\\S+\\.\\S+$'
             },
             favoriteColor: {
               type: 'string',
-              description: 'Favorite color in CSS format',
+              example: 'blue',
+              description: 'CSS color name or hex value'
             },
             birthday: {
               type: 'string',
               format: 'date',
-              description: 'Birth date in YYYY-MM-DD format',
+              example: '1990-01-01',
+              description: 'ISO date format (YYYY-MM-DD)'
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Auto-generated creation timestamp',
+              readOnly: true
             },
             updatedAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Auto-generated update timestamp',
-            },
-          },
+              readOnly: true
+            }
+          }
         },
+        Error: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              example: 'Not Found'
+            },
+            message: {
+              type: 'string',
+              example: 'Contact not found'
+            },
+            statusCode: {
+              type: 'integer',
+              example: 404
+            }
+          }
+        }
       },
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
     },
+    security: [{
+      bearerAuth: []
+    }]
   },
-  apis: ['./routes/*.js'], // Path to your route files
+  apis: [
+    path.join(__dirname, './routes/*.js'),
+    path.join(__dirname, './models/*.js')
+  ]
 };
 
 const specs = swaggerJsdoc(options);
 
 module.exports = (app) => {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+  // Serve Swagger UI
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+    explorer: true,
+    customSiteTitle: 'Contacts API Documentation',
+    customCss: '.swagger-ui .topbar { display: none }',
+    customfavIcon: '/public/favicon.ico'
+  }));
+
+  // Serve raw JSON spec
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(specs);
+  });
+
+  console.log(`Swagger docs available at ${isProduction ? productionServerUrl : localServerUrl}/api-docs`);
 };
