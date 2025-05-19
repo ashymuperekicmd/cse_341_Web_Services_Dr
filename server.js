@@ -54,11 +54,23 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+// At the top of your server.js with other constants
+const isProduction = process.env.NODE_ENV === 'production';
+const API_BASE_URL = isProduction 
+  ? 'https://cse-341-web-services-dr.onrender.com' 
+  : `http://localhost:${PORT}`;
+
+// ... (in your app.listen callback)
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`REST API: http://localhost:${PORT}/contacts`);
+  console.log(`REST API: ${API_BASE_URL}/contacts`);
+  
   if (swaggerEnabled) {
-    console.log(`API Docs: http://localhost:${PORT}/api-docs`);
+    console.log(`API Documentation:`);
+    console.log(`- Local: http://localhost:${PORT}/api-docs`);
+    console.log(`- Production: https://cse-341-web-services-dr.onrender.com/api-docs`);
+    console.log(`- JSON Spec: ${API_BASE_URL}/api-docs.json`);
+  } else {
+    console.log('Swagger documentation is disabled');
   }
 });
