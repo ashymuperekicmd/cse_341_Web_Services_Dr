@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
+const swaggerSetup = require('./swagger');
 const app = express();
 
 // Middleware to parse JSON bodies
@@ -30,6 +31,8 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
+
+swaggerSetup(app);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
