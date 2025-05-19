@@ -7,98 +7,63 @@ const Contact = require('../models/contact');
 const asyncHandler = fn => (req, res, next) => 
   Promise.resolve(fn(req, res, next)).catch(next);
 
-// GET all contacts with filtering
-router.get('/', asyncHandler(async (req, res) => {
-  const { color, limit = 20 } = req.query;
-  const query = {};
-  
-  if (color) query.favoriteColor = color;
-  
-  const contacts = await Contact.find(query)
-    .select('firstName lastName email favoriteColor')
-    .limit(parseInt(limit));
-  
-  res.set('Cache-Control', 'public, max-age=300');
-  res.json(contacts);
-}));
-
-// GET single contact
-router.get('/:id', asyncHandler(async (req, res) => {
-  if (!isValidObjectId(req.params.id)) {
-    return res.status(400).json({ error: 'Invalid ID format' });
-  }
-  
-  const contact = await Contact.findById(req.params.id)
-    .select('-__v');
-  
-  if (!contact) {
-    return res.status(404).json({ error: 'Contact not found' });
-  }
-  
-  res.json(contact);
-}));
-
-// POST create new contact
-router.post('/', asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, favoriteColor, birthday } = req.body;
-  
-  const newContact = await Contact.create({
-    firstName,
-    lastName,
-    email,
-    favoriteColor,
-    birthday
-  });
-  
-  res.status(201).json({ 
-    _id: newContact._id,
-    message: 'Contact created successfully'
-  });
-}));
-
-// PUT update existing contact
-router.put('/:id', asyncHandler(async (req, res) => {
-  if (!isValidObjectId(req.params.id)) {
-    return res.status(400).json({ error: 'Invalid ID format' });
-  }
-  
-  const updatedContact = await Contact.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true, runValidators: true }
-  );
-  
-  if (!updatedContact) {
-    return res.status(404).json({ error: 'Contact not found' });
-  }
-  
-  res.status(200).json({
-    message: 'Contact updated successfully'
-  });
-}));
-
-// DELETE contact
-router.delete('/:id', asyncHandler(async (req, res) => {
-  if (!isValidObjectId(req.params.id)) {
-    return res.status(400).json({ error: 'Invalid ID format' });
-  }
-  
-  const deletedContact = await Contact.findByIdAndDelete(req.params.id);
-  
-  if (!deletedContact) {
-    return res.status(404).json({ error: 'Contact not found' });
-  }
-  
-  res.status(204).end();
-}));
-
-module.exports = router;
-
 /**
  * @swagger
  * tags:
  *   name: Contacts
  *   description: Contact management
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Contact:
+ *       type: object
+ *       required:
+ *         - firstName
+ *         - lastName
+ *         - email
+ *         - favoriteColor
+ *         - birthday
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: The auto-generated ID of the contact
+ *         firstName:
+ *           type: string
+ *           description: The first name of the contact
+ *         lastName:
+ *           type: string
+ *           description: The last name of the contact
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: The email address of the contact
+ *         favoriteColor:
+ *           type: string
+ *           description: The favorite color of the contact
+ *         birthday:
+ *           type: string
+ *           format: date
+ *           description: The birthday of the contact (YYYY-MM-DD)
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the contact was created
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the contact was last updated
+ *       example:
+ *         _id: 507f1f77bcf86cd799439011
+ *         firstName: John
+ *         lastName: Doe
+ *         email: john@example.com
+ *         favoriteColor: blue
+ *         birthday: 1990-01-01
+ *         createdAt: 2023-01-01T00:00:00.000Z
+ *         updatedAt: 2023-01-01T00:00:00.000Z
  */
 
 /**
@@ -117,6 +82,7 @@ module.exports = router;
  *         name: limit
  *         schema:
  *           type: integer
+ *           default: 20
  *         description: Limit number of results
  *     responses:
  *       200:
@@ -127,9 +93,21 @@ module.exports = router;
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Contact'
+ *       500:
+ *         description: Server error
  */
 router.get('/', asyncHandler(async (req, res) => {
-  // ... existing implementation
+  const { color, limit = 20 } = req.query;
+  const query = {};
+  
+  if (color) query.favoriteColor = color;
+  
+  const contacts = await Contact.find(query)
+    .select('firstName lastName email favoriteColor')
+    .limit(parseInt(limit));
+  
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json(contacts);
 }));
 
 /**
@@ -152,13 +130,26 @@ router.get('/', asyncHandler(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Contact'
- *       404:
- *         description: Contact not found
  *       400:
  *         description: Invalid ID format
+ *       404:
+ *         description: Contact not found
+ *       500:
+ *         description: Server error
  */
 router.get('/:id', asyncHandler(async (req, res) => {
-  // ... existing implementation
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid ID format' });
+  }
+  
+  const contact = await Contact.findById(req.params.id)
+    .select('-__v');
+  
+  if (!contact) {
+    return res.status(404).json({ error: 'Contact not found' });
+  }
+  
+  res.json(contact);
 }));
 
 /**
@@ -188,9 +179,24 @@ router.get('/:id', asyncHandler(async (req, res) => {
  *                   type: string
  *       400:
  *         description: Validation error
+ *       500:
+ *         description: Server error
  */
 router.post('/', asyncHandler(async (req, res) => {
-  // ... existing implementation
+  const { firstName, lastName, email, favoriteColor, birthday } = req.body;
+  
+  const newContact = await Contact.create({
+    firstName,
+    lastName,
+    email,
+    favoriteColor,
+    birthday
+  });
+  
+  res.status(201).json({ 
+    _id: newContact._id,
+    message: 'Contact created successfully'
+  });
 }));
 
 /**
@@ -215,13 +221,31 @@ router.post('/', asyncHandler(async (req, res) => {
  *     responses:
  *       200:
  *         description: Contact updated successfully
- *       404:
- *         description: Contact not found
  *       400:
  *         description: Invalid ID format or validation error
+ *       404:
+ *         description: Contact not found
+ *       500:
+ *         description: Server error
  */
 router.put('/:id', asyncHandler(async (req, res) => {
-  // ... existing implementation
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid ID format' });
+  }
+  
+  const updatedContact = await Contact.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true, runValidators: true }
+  );
+  
+  if (!updatedContact) {
+    return res.status(404).json({ error: 'Contact not found' });
+  }
+  
+  res.status(200).json({
+    message: 'Contact updated successfully'
+  });
 }));
 
 /**
@@ -240,11 +264,25 @@ router.put('/:id', asyncHandler(async (req, res) => {
  *     responses:
  *       204:
  *         description: Contact deleted successfully
- *       404:
- *         description: Contact not found
  *       400:
  *         description: Invalid ID format
+ *       404:
+ *         description: Contact not found
+ *       500:
+ *         description: Server error
  */
 router.delete('/:id', asyncHandler(async (req, res) => {
-  // ... existing implementation
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid ID format' });
+  }
+  
+  const deletedContact = await Contact.findByIdAndDelete(req.params.id);
+  
+  if (!deletedContact) {
+    return res.status(404).json({ error: 'Contact not found' });
+  }
+  
+  res.status(204).end();
 }));
+
+module.exports = router;
