@@ -39,3 +39,10 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Try accessing: http://localhost:${PORT}/contacts`);
 });
+
+try {
+  const swaggerSetup = require('./swagger');
+  swaggerSetup(app);
+} catch (err) {
+  console.log('Swagger documentation disabled in production');
+}
